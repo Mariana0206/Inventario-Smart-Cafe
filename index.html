@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventario TI</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2563eb; --secondary: #64748b; --success: #22c55e;
+            --warning: #f59e0b; --danger: #ef4444; --info: #06b6d4; --bg: #f8fafc;
+        }
+
+        body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #1e293b; }
+        .container { max-width: 1000px; margin: auto; }
+
+        .glass-panel {
+            background: white; padding: 25px; border-radius: 16px;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); margin-bottom: 30px;
+        }
+
+        h1 { margin: 0 0 20px 0; font-size: 1.5rem; display: flex; align-items: center; gap: 10px; color: #0f172a; }
+
+        .form-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px; margin-bottom: 20px;
+        }
+
+        input, select {
+            padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; outline: none; transition: 0.2s;
+        }
+
+        input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+
+        .button-group {
+            display: flex; gap: 8px; flex-wrap: wrap; border-top: 1px solid #f1f5f9; padding-top: 20px;
+        }
+
+        button {
+            display: flex; align-items: center; gap: 8px; padding: 10px 16px;
+            border: none; border-radius: 8px; font-weight: 600; cursor: pointer;
+            transition: 0.2s; color: white; font-size: 0.9rem;
+        }
+
+        .btn-get { background: var(--info); }
+        .btn-post { background: var(--success); }
+        .btn-put { background: var(--warning); color: #1e293b; }
+        .btn-delete { background: var(--danger); }
+        .btn-clear { background: var(--secondary); }
+        .btn-refresh { background: var(--primary); margin-left: auto; }
+
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        .inventory-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;
+        }
+
+        .device-card {
+            background: white; border-radius: 12px; padding: 18px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-top: 4px solid var(--primary);
+        }
+
+        .badge {
+            padding: 4px 10px; border-radius: 20px; font-size: 0.7rem;
+            text-transform: uppercase; font-weight: bold;
+        }
+        .status-disponible { background: #dcfce7; color: #166534; }
+        .status-uso { background: #fef9c3; color: #854d0e; }
+        
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+        .card-id { font-size: 0.8rem; color: var(--secondary); font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="glass-panel">
+        <h1><i class="fas fa-boxes-stacked"></i>Inventario TI</h1>
+        
+        <div style="margin-bottom: 15px;">
+            <label style="font-size: 0.8rem; font-weight: bold; color: var(--secondary);">BUSCAR / EDITAR ID</label><br>
+            <input type="number" id="id_input" placeholder="ID del dispositivo" style="width: 180px;">
+        </div>
+
+        <div class="form-grid">
+            <input type="text" id="nombre" placeholder="Nombre (ej. Laptop HP)">
+            <input type="text" id="tipo" placeholder="Tipo (ej. Laptop)">
+            <select id="estado">
+                <option value="Disponible">Disponible</option>
+                <option value="En uso">En uso</option>
+                <option value="Dañado">Dañado</option>
+            </select>
+            <input type="text" id="area" placeholder="Área (ej. Soporte)">
+        </div>
+
+        <div class="button-group">
+            <button class="btn-get" onclick="consultar()"><i class="fas fa-search"></i> Consultar ID</button>
+            <button class="btn-post" onclick="guardar()"><i class="fas fa-save"></i> Guardar Nuevo</button>
+            <button class="btn-put" onclick="modificar()"><i class="fas fa-sync"></i> Modificar</button>
+            <button class="btn-delete" onclick="eliminar()"><i class="fas fa-trash-can"></i> Eliminar</button>
+            <button class="btn-clear" onclick="limpiar()"><i class="fas fa-eraser"></i> Limpiar</button>
+            <button class="btn-refresh" onclick="listar()"><i class="fas fa-list"></i> Ver Todo</button>
+        </div>
+    </div>
+
+    <div class="inventory-grid" id="lista"></div>
+</div>
+
+<script>
+    const API = 'http://127.0.0.1:5000/devices';
+
+    async function listar() {
+        const res = await fetch(API);
+        const data = await res.json();
+        const cont = document.getElementById('lista');
+        cont.innerHTML = '';
+        data.forEach(d => {
+            const stClass = d.estado === 'Disponible' ? 'status-disponible' : 'status-uso';
+            cont.innerHTML += `
+                <div class="device-card">
+                    <div class="card-header">
+                        <h3>${d.nombre}</h3>
+                        <span class="card-id">#${d.id}</span>
+                    </div>
+                    <span class="badge ${stClass}">${d.estado}</span>
+                    <p style="margin: 10px 0; font-size: 0.9rem;">
+                        <i class="fas fa-microchip"></i> ${d.tipo} <br>
+                        <i class="fas fa-building"></i> ${d.area}
+                    </p>
+                    <small style="color: gray; font-size: 0.7rem;">${d.fecha_registro}</small>
+                </div>`;
+        });
+    }
+
+    async function consultar() {
+        const id = document.getElementById('id_input').value;
+        if(!id) return alert("Ingresa un ID");
+        const res = await fetch(`${API}/${id}`);
+        if(res.status === 404) return alert("ID no encontrado");
+        const d = await res.json();
+        document.getElementById('nombre').value = d.nombre;
+        document.getElementById('tipo').value = d.tipo;
+        document.getElementById('estado').value = d.estado;
+        document.getElementById('area').value = d.area;
+    }
+
+    async function guardar() {
+        const data = {
+            nombre: document.getElementById('nombre').value,
+            tipo: document.getElementById('tipo').value,
+            estado: document.getElementById('estado').value,
+            area: document.getElementById('area').value
+        };
+        const res = await fetch(API, {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        if(res.ok) { listar(); limpiar(); }
+        else alert("Error: Verifica los campos");
+    }
+
+    async function modificar() {
+        const id = document.getElementById('id_input').value;
+        if(!id) return alert("Consulta un ID primero");
+        const data = {
+            nombre: document.getElementById('nombre').value,
+            tipo: document.getElementById('tipo').value,
+            estado: document.getElementById('estado').value,
+            area: document.getElementById('area').value
+        };
+        await fetch(`${API}/${id}`, {
+            method: 'PUT', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        listar();
+    }
+
+    async function eliminar() {
+        const id = document.getElementById('id_input').value;
+        if(!id || !confirm("¿Eliminar registro?")) return;
+        await fetch(`${API}/${id}`, { method: 'DELETE' });
+        listar();
+        limpiar();
+    }
+
+    function limpiar() {
+        document.getElementById('id_input').value = '';
+        document.getElementById('nombre').value = '';
+        document.getElementById('tipo').value = '';
+        document.getElementById('area').value = '';
+        document.getElementById('estado').value = 'Disponible';
+    }
+
+    window.onload = listar;
+</script>
+</body>
+</html>
